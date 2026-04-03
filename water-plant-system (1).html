@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaFlow — Water Plant Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0f1e;--surface:#111827;--surface2:#1a2438;--border:#1e3050;
+  --accent:#00c6ff;--accent2:#0072ff;--success:#00e5a0;--warning:#ffb020;
+  --danger:#ff4d6d;--text:#e8f0fe;--muted:#6b7fa3;--card:#131f35;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.bg-orbs{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.bg-orbs::before{content:'';position:absolute;width:600px;height:600px;top:-200px;left:-200px;background:radial-gradient(circle,rgba(0,114,255,0.12) 0%,transparent 70%);animation:drift 12s ease-in-out infinite alternate}
+.bg-orbs::after{content:'';position:absolute;width:500px;height:500px;bottom:-150px;right:-100px;background:radial-gradient(circle,rgba(0,198,255,0.10) 0%,transparent 70%);animation:drift 15s ease-in-out infinite alternate-reverse}
+@keyframes drift{from{transform:translate(0,0)}to{transform:translate(40px,30px)}}
+.screen{position:relative;z-index:1;min-height:100vh;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.screen.active{display:flex}
+.logo{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-1px;display:flex;align-items:center;gap:10px}
+.logo-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;-webkit-text-fill-color:white;flex-shrink:0}
+/* LANDING */
+#landing{text-align:center;gap:56px}
+.landing-header{display:flex;flex-direction:column;gap:14px;align-items:center}
+.landing-header h1{font-family:'Syne',sans-serif;font-size:clamp(2.4rem,5vw,3.8rem);font-weight:800;line-height:1.05;background:linear-gradient(135deg,var(--text) 30%,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.landing-header p{color:var(--muted);font-size:1.05rem;max-width:420px}
+.role-cards{display:flex;gap:22px;flex-wrap:wrap;justify-content:center}
+.role-card{background:var(--card);border:1px solid var(--border);border-radius:22px;padding:38px 34px;width:255px;cursor:pointer;transition:all 0.3s ease;position:relative;overflow:hidden}
+.role-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,198,255,0.06),transparent);opacity:0;transition:opacity 0.3s}
+.role-card:hover{transform:translateY(-6px);border-color:var(--accent);box-shadow:0 20px 60px rgba(0,198,255,0.15)}
+.role-card:hover::before{opacity:1}
+.role-icon{font-size:2.8rem;margin-bottom:14px}
+.role-card h3{font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:700;margin-bottom:8px}
+.role-card p{color:var(--muted);font-size:0.88rem;line-height:1.55}
+.role-badge{display:inline-block;margin-top:14px;padding:4px 12px;border-radius:20px;font-size:0.73rem;font-weight:500;background:rgba(0,198,255,0.12);color:var(--accent);border:1px solid rgba(0,198,255,0.3)}
+.role-badge.admin{background:rgba(255,176,32,0.12);color:var(--warning);border-color:rgba(255,176,32,0.3)}
+/* AUTH */
+.auth-card{background:var(--card);border:1px solid var(--border);border-radius:24px;padding:46px 38px;width:100%;max-width:440px;box-shadow:0 40px 80px rgba(0,0,0,0.4)}
+.auth-card h2{font-family:'Syne',sans-serif;font-size:1.75rem;font-weight:700;margin:16px 0 6px}
+.auth-card .subtitle{color:var(--muted);font-size:0.88rem;margin-bottom:28px}
+.back-btn{display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.88rem;padding:0;transition:color 0.2s;font-family:'DM Sans',sans-serif}
+.back-btn:hover{color:var(--accent)}
+/* FORM */
+.form-group{margin-bottom:18px}
+.form-group label{display:block;font-size:0.78rem;font-weight:500;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:0.5px}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:13px 15px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.93rem;outline:none;transition:border-color 0.2s,box-shadow 0.2s;appearance:none}
+.form-group select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7fa3' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,198,255,0.12)}
+.form-group select option{background:var(--surface)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 22px;border-radius:12px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.93rem;font-weight:500;transition:all 0.2s ease;text-decoration:none}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;width:100%;font-weight:600}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,114,255,0.4)}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-success{background:linear-gradient(135deg,#00e5a0,#00b37a);color:#001a10;font-weight:600}
+.btn-success:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,229,160,0.3)}
+.btn-danger{background:rgba(255,77,109,0.15);color:var(--danger);border:1px solid rgba(255,77,109,0.3)}
+.btn-danger:hover{background:var(--danger);color:white}
+.btn-sm{padding:8px 15px;font-size:0.82rem;border-radius:8px}
+.btn-xs{padding:5px 11px;font-size:0.75rem;border-radius:6px}
+/* APP */
+#employee-app,#admin-app{display:none;flex-direction:column;min-height:100vh;position:relative;z-index:1}
+#employee-app.active,#admin-app.active{display:flex}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:13px 26px;background:rgba(17,24,39,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.user-chip{display:flex;align-items:center;gap:9px;background:var(--surface2);border:1px solid var(--border);border-radius:50px;padding:5px 14px 5px 5px}
+.user-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:0.82rem;font-weight:700;color:white;flex-shrink:0}
+.user-name{font-size:0.85rem;font-weight:500}
+.app-body{display:flex;flex:1}
+.sidenav{width:224px;background:var(--surface);border-right:1px solid var(--border);padding:18px 10px;display:flex;flex-direction:column;gap:3px;min-height:calc(100vh - 62px);position:sticky;top:62px;height:calc(100vh - 62px);overflow-y:auto;flex-shrink:0}
+.nav-section{font-size:0.67rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:13px 12px 4px}
+.nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--muted);font-size:0.87rem;transition:all 0.2s;border:none;background:none;width:100%;font-family:'DM Sans',sans-serif;text-align:left}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:rgba(0,198,255,0.12);color:var(--accent)}
+.nav-icon{font-size:0.98rem;width:20px;text-align:center;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--danger);color:white;font-size:0.67rem;padding:2px 7px;border-radius:10px;font-weight:700}
+.main-content{flex:1;padding:26px 30px;overflow-y:auto;max-height:calc(100vh - 62px)}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;gap:14px;flex-wrap:wrap}
+.page-title{font-family:'Syne',sans-serif;font-size:1.45rem;font-weight:700}
+.page-subtitle{color:var(--muted);font-size:0.83rem;margin-top:3px}
+.tab-page{display:none}
+.tab-page.active{display:block}
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-bottom:22px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:15px;padding:18px;position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;top:0;right:0;width:70px;height:70px;border-radius:50%;transform:translate(28px,-28px)}
+.stat-card.blue::after{background:rgba(0,198,255,0.12)}
+.stat-card.green::after{background:rgba(0,229,160,0.12)}
+.stat-card.orange::after{background:rgba(255,176,32,0.12)}
+.stat-card.red::after{background:rgba(255,77,109,0.12)}
+.stat-card.purple::after{background:rgba(168,85,247,0.12)}
+.stat-icon{font-size:1.3rem;margin-bottom:9px}
+.stat-value{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:700;line-height:1}
+.stat-label{color:var(--muted);font-size:0.76rem;margin-top:4px}
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden;margin-bottom:18px}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-family:'Syne',sans-serif;font-size:0.93rem;font-weight:700}
+.card-body{padding:0}
+/* TABLE */
+table{width:100%;border-collapse:collapse}
+thead th{padding:10px 16px;text-align:left;font-size:0.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);background:var(--surface);white-space:nowrap}
+tbody td{padding:12px 16px;font-size:0.87rem;border-bottom:1px solid rgba(30,48,80,0.5);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(255,255,255,0.02)}
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:0.71rem;font-weight:600;white-space:nowrap}
+.badge-pending{background:rgba(255,176,32,0.15);color:var(--warning);border:1px solid rgba(255,176,32,0.3)}
+.badge-paid{background:rgba(0,229,160,0.15);color:var(--success);border:1px solid rgba(0,229,160,0.3)}
+.badge-approved{background:rgba(0,229,160,0.15);color:var(--success);border:1px solid rgba(0,229,160,0.3)}
+.badge-awaiting{background:rgba(255,176,32,0.15);color:var(--warning);border:1px solid rgba(255,176,32,0.3)}
+.badge-cash{background:rgba(0,229,160,0.12);color:var(--success);border:1px solid rgba(0,229,160,0.3)}
+.badge-phonepe{background:rgba(114,0,255,0.15);color:#a855f7;border:1px solid rgba(114,0,255,0.3)}
+.badge-card{background:rgba(0,198,255,0.12);color:var(--accent);border:1px solid rgba(0,198,255,0.3)}
+.badge-pay-pending{background:rgba(255,77,109,0.12);color:var(--danger);border:1px solid rgba(255,77,109,0.3)}
+/* SELFIE */
+.selfie-zone{border:2px dashed var(--border);border-radius:16px;padding:26px;text-align:center;cursor:pointer;transition:all 0.3s;position:relative;overflow:hidden}
+.selfie-zone:hover{border-color:var(--accent);background:rgba(0,198,255,0.04)}
+.selfie-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.selfie-preview{max-width:220px;max-height:180px;border-radius:12px;object-fit:cover;display:none;margin:0 auto 10px;border:2px solid var(--accent)}
+/* ATT STATUS */
+.att-status-card{background:linear-gradient(135deg,rgba(0,198,255,0.1),rgba(0,114,255,0.05));border:1px solid rgba(0,198,255,0.25);border-radius:18px;padding:22px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.att-status-card .att-info h3{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;margin-bottom:4px}
+.att-status-card .att-info p{color:var(--muted);font-size:0.83rem}
+/* PAYMENT GRID */
+.payment-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.payment-option{border:2px solid var(--border);border-radius:12px;padding:13px 10px;cursor:pointer;text-align:center;transition:all 0.2s;background:var(--surface2)}
+.payment-option:hover{border-color:var(--accent)}
+.payment-option.selected{border-color:var(--accent);background:rgba(0,198,255,0.08)}
+.payment-option .p-icon{font-size:1.6rem;margin-bottom:5px}
+.payment-option .p-label{font-size:0.8rem;font-weight:500}
+.payment-option.pend-opt.selected{border-color:var(--danger);background:rgba(255,77,109,0.08)}
+/* MODAL */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(12px);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:22px;padding:28px;max-width:520px;width:100%;position:relative;box-shadow:0 40px 80px rgba(0,0,0,0.5);max-height:90vh;overflow-y:auto}
+.modal h3{font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:700;margin-bottom:14px}
+.modal img{width:100%;border-radius:12px;margin-bottom:12px;max-height:320px;object-fit:cover}
+.modal-close{position:absolute;top:13px;right:13px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:0.95rem;transition:all 0.2s}
+.modal-close:hover{color:var(--text);border-color:var(--text)}
+/* SEARCH */
+.search-wrap{position:relative;flex:1}
+.search-wrap input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 15px 11px 40px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;transition:border-color 0.2s}
+.search-wrap input:focus{border-color:var(--accent)}
+.search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:0.95rem;pointer-events:none}
+/* FILTER TABS */
+.filter-tabs{display:flex;gap:7px;margin-bottom:16px;flex-wrap:wrap}
+.filter-tab{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.8rem;transition:all 0.2s;white-space:nowrap}
+.filter-tab.active{background:var(--accent);color:white;border-color:var(--accent)}
+.filter-tab:hover:not(.active){border-color:var(--accent);color:var(--accent)}
+/* TOAST */
+#toast-container{position:fixed;bottom:22px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:9px}
+.toast{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:12px 17px;font-size:0.84rem;box-shadow:0 20px 40px rgba(0,0,0,0.4);display:flex;align-items:center;gap:9px;animation:slideIn 0.3s ease;max-width:290px}
+.toast.success{border-left:3px solid var(--success)}
+.toast.error{border-left:3px solid var(--danger)}
+.toast.info{border-left:3px solid var(--accent)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.empty-state{text-align:center;padding:46px 20px;color:var(--muted)}
+.empty-state .emoji{font-size:2.6rem;margin-bottom:10px}
+.empty-state p{font-size:0.86rem}
+.my-sales-item{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid rgba(30,48,80,0.5);gap:10px}
+.my-sales-item:last-child{border-bottom:none}
+.sales-customer{font-weight:500;margin-bottom:2px;font-size:0.88rem}
+.sales-meta{font-size:0.77rem;color:var(--muted)}
+.att-photo{width:36px;height:36px;border-radius:7px;object-fit:cover;cursor:pointer;border:2px solid var(--border);transition:border-color 0.2s}
+.att-photo:hover{border-color:var(--accent)}
+.datetime-display{font-family:'Syne',sans-serif;font-size:0.97rem;font-weight:700;color:var(--accent)}
+.divider{height:1px;background:var(--border);margin:7px 0}
+.export-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;background:rgba(0,198,255,0.1);color:var(--accent);border:1px solid rgba(0,198,255,0.3);font-size:0.8rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s}
+.export-btn:hover{background:rgba(0,198,255,0.2)}
+.order-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(30,48,80,0.4);font-size:0.83rem}
+.order-row:last-child{border-bottom:none}
+.info-banner{background:rgba(0,198,255,0.07);border:1px solid rgba(0,198,255,0.2);border-radius:10px;padding:12px 16px;font-size:0.83rem;color:var(--muted);margin-bottom:16px;display:flex;align-items:center;gap:9px}
+@media(max-width:768px){
+  .sidenav{width:52px}.sidenav .nav-label,.sidenav .nav-section{display:none}
+  .nav-item{justify-content:center;padding:12px}.main-content{padding:16px 12px}
+  .topbar{padding:11px 13px}.stats-grid{grid-template-columns:repeat(2,1fr)}
+  .auth-card{padding:26px 18px}.form-row{grid-template-columns:1fr}.payment-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="bg-orbs"></div>
+
+<!-- LANDING -->
+<div id="landing" class="screen active">
+  <div class="landing-header">
+    <div class="logo"><div class="logo-icon">💧</div>AquaFlow</div>
+    <h1>Water Plant<br>Management System</h1>
+    <p>Smart operations for daily sales, attendance &amp; customer management</p>
+  </div>
+  <div class="role-cards">
+    <div class="role-card" onclick="showLogin('employee')">
+      <div class="role-icon">👷</div><h3>Employee Portal</h3>
+      <p>Mark attendance with selfie, submit sales entries, and track your daily activity.</p>
+      <div class="role-badge">Employee Access</div>
+    </div>
+    <div class="role-card" onclick="showLogin('admin')">
+      <div class="role-icon">🛡️</div><h3>Admin Dashboard</h3>
+      <p>Full control over attendance, sales, payments, customers &amp; employees.</p>
+      <div class="role-badge admin">Admin Access</div>
+    </div>
+  </div>
+</div>
+
+<!-- EMPLOYEE LOGIN -->
+<div id="employee-login" class="screen">
+  <div class="auth-card">
+    <button class="back-btn" onclick="showScreen('landing')">← Back</button>
+    <div class="logo" style="margin-top:14px;font-size:1.35rem"><div class="logo-icon" style="width:30px;height:30px;font-size:0.9rem">💧</div>AquaFlow</div>
+    <h2>Employee Login</h2><p class="subtitle">Sign in to access your dashboard</p>
+    <div class="form-group"><label>Email</label><input type="email" id="emp-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')employeeLogin()"></div>
+    <div class="form-group"><label>Password</label><input type="password" id="emp-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')employeeLogin()"></div>
+    <button class="btn btn-primary" onclick="employeeLogin()">Sign In →</button>
+  </div>
+</div>
+
+<!-- ADMIN LOGIN -->
+<div id="admin-login" class="screen">
+  <div class="auth-card">
+    <button class="back-btn" onclick="showScreen('landing')">← Back</button>
+    <div class="logo" style="margin-top:14px;font-size:1.35rem"><div class="logo-icon" style="width:30px;height:30px;font-size:0.9rem">💧</div>AquaFlow</div>
+    <h2>Admin Login</h2><p class="subtitle">Secure access to the control panel</p>
+    <div class="form-group"><label>Admin Email</label><input type="email" id="adm-email" placeholder="admin@email.com" onkeydown="if(event.key==='Enter')adminLogin()"></div>
+    <div class="form-group"><label>Password</label><input type="password" id="adm-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()"></div>
+    <button class="btn btn-primary" onclick="adminLogin()">Sign In →</button>
+  </div>
+</div>
+
+<!-- EMPLOYEE APP -->
+<div id="employee-app">
+  <div class="topbar">
+    <div class="logo" style="font-size:1.15rem"><div class="logo-icon" style="width:28px;height:28px;font-size:0.85rem">💧</div>AquaFlow</div>
+    <div class="topbar-right">
+      <div class="datetime-display" id="emp-clock"></div>
+      <div class="user-chip"><div class="user-avatar" id="emp-avatar">E</div><span class="user-name" id="emp-username">Employee</span></div>
+      <button class="btn btn-secondary btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </div>
+  <div class="app-body">
+    <nav class="sidenav">
+      <div class="nav-section">Menu</div>
+      <button class="nav-item active" onclick="empTab(this,'emp-dashboard')"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></button>
+      <button class="nav-item" onclick="empTab(this,'emp-attendance')"><span class="nav-icon">📍</span><span class="nav-label">Attendance</span></button>
+      <button class="nav-item" onclick="empTab(this,'emp-sales')"><span class="nav-icon">➕</span><span class="nav-label">New Sale</span></button>
+      <button class="nav-item" onclick="empTab(this,'emp-history')"><span class="nav-icon">📋</span><span class="nav-label">My Sales</span></button>
+    </nav>
+    <main class="main-content">
+      <!-- DASHBOARD -->
+      <div id="emp-dashboard" class="tab-page active">
+        <div class="page-header"><div><div class="page-title">Good day, <span id="emp-greet-name">Employee</span> 👋</div><div class="page-subtitle" id="emp-date-display"></div></div></div>
+        <div class="stats-grid">
+          <div class="stat-card blue"><div class="stat-icon">📍</div><div class="stat-value" id="emp-stat-att">—</div><div class="stat-label">Today Attendance</div></div>
+          <div class="stat-card green"><div class="stat-icon">🧾</div><div class="stat-value" id="emp-stat-sales">0</div><div class="stat-label">Today's Sales</div></div>
+          <div class="stat-card orange"><div class="stat-icon">💧</div><div class="stat-value" id="emp-stat-cans">0</div><div class="stat-label">Cans Today</div></div>
+          <div class="stat-card red"><div class="stat-icon">🗓️</div><div class="stat-value" id="emp-stat-month">0</div><div class="stat-label">This Month</div></div>
+        </div>
+        <div class="card"><div class="card-header"><span class="card-title">Today's Entries</span></div><div class="card-body" id="emp-today-list"><div class="empty-state"><div class="emoji">🛒</div><p>No sales submitted today</p></div></div></div>
+      </div>
+      <!-- ATTENDANCE -->
+      <div id="emp-attendance" class="tab-page">
+        <div class="page-header"><div><div class="page-title">Mark Attendance</div><div class="page-subtitle">Upload selfie as proof of presence</div></div></div>
+        <div class="att-status-card" id="att-status-card">
+          <div class="att-info"><h3 id="att-status-title">Not Marked Yet</h3><p id="att-status-sub">Mark attendance for today</p></div>
+          <div id="att-status-badge"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Today's Attendance</span></div>
+          <div class="card-body" style="padding:22px">
+            <div class="selfie-zone" onclick="document.getElementById('selfie-input').click()">
+              <input type="file" id="selfie-input" accept="image/*" onchange="previewSelfie(event)">
+              <img id="selfie-preview" class="selfie-preview" src="" alt="">
+              <div id="selfie-placeholder"><div style="font-size:2.4rem;margin-bottom:7px">📸</div><div style="font-weight:600;margin-bottom:4px">Upload Selfie</div><div style="color:var(--muted);font-size:0.8rem">Click to take or upload a photo as attendance proof</div></div>
+            </div>
+            <div style="height:16px"></div>
+            <div class="form-group"><label>Note for Admin (Optional)</label><textarea id="att-note" rows="2" placeholder="Any note..."></textarea></div>
+            <button class="btn btn-success" id="mark-att-btn" onclick="markAttendance()">✅ Submit Attendance</button>
+          </div>
+        </div>
+      </div>
+      <!-- NEW SALE -->
+      <div id="emp-sales" class="tab-page">
+        <div class="page-header"><div><div class="page-title">New Sales Entry</div><div class="page-subtitle">Submit a sale for a customer</div></div></div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Sale Details</span></div>
+          <div class="card-body" style="padding:24px">
+            <div class="form-row">
+              <div class="form-group"><label>Customer Name *</label><input type="text" id="sale-cname" placeholder="Full name"></div>
+              <div class="form-group"><label>Phone Number *</label><input type="tel" id="sale-phone" placeholder="10-digit number" maxlength="10"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Number of Cans *</label><input type="number" id="sale-cans" placeholder="e.g. 3" min="1"></div>
+              <div class="form-group"><label>Notes (Optional)</label><input type="text" id="sale-notes" placeholder="Any extra notes"></div>
+            </div>
+            <div class="form-group">
+              <label>Payment Method *</label>
+              <div class="payment-grid">
+                <div class="payment-option" onclick="selectPayment('PhonePe',this)"><div class="p-icon">📱</div><div class="p-label">PhonePe</div></div>
+                <div class="payment-option" onclick="selectPayment('Cash',this)"><div class="p-icon">💵</div><div class="p-label">Cash</div></div>
+                <div class="payment-option" onclick="selectPayment('Monthly Card',this)"><div class="p-icon">💳</div><div class="p-label">Monthly Card</div></div>
+                <div class="payment-option pend-opt" onclick="selectPayment('Pending',this)"><div class="p-icon">⏳</div><div class="p-label">Pending</div></div>
+              </div>
+              <input type="hidden" id="sale-payment">
+            </div>
+            <button class="btn btn-primary" onclick="submitSale()" style="margin-top:6px">Submit Sale →</button>
+          </div>
+        </div>
+      </div>
+      <!-- MY SALES -->
+      <div id="emp-history" class="tab-page">
+        <div class="page-header"><div><div class="page-title">My Sales</div><div class="page-subtitle">All sales entries you've submitted</div></div></div>
+        <div class="card"><div class="card-header"><span class="card-title">Sales History</span></div><div class="card-body" id="emp-sales-list"></div></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="admin-app">
+  <div class="topbar">
+    <div class="logo" style="font-size:1.15rem"><div class="logo-icon" style="width:28px;height:28px;font-size:0.85rem">💧</div>AquaFlow Admin</div>
+    <div class="topbar-right">
+      <div class="datetime-display" id="adm-clock"></div>
+      <div class="user-chip"><div class="user-avatar" id="adm-avatar" style="background:linear-gradient(135deg,var(--warning),#d97706)">A</div><span class="user-name" id="adm-username">Admin</span></div>
+      <button class="btn btn-secondary btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </div>
+  <div class="app-body">
+    <nav class="sidenav">
+      <div class="nav-section">Admin</div>
+      <button class="nav-item active" onclick="admTab(this,'adm-dashboard')"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></button>
+      <button class="nav-item" onclick="admTab(this,'adm-attendance')"><span class="nav-icon">📍</span><span class="nav-label">Attendance</span><span class="nav-badge" id="att-pending-badge" style="display:none">0</span></button>
+      <button class="nav-item" onclick="admTab(this,'adm-sales')"><span class="nav-icon">🧾</span><span class="nav-label">Sales</span></button>
+      <button class="nav-item" onclick="admTab(this,'adm-customers')"><span class="nav-icon">🔍</span><span class="nav-label">Customers</span></button>
+      <div class="divider"></div>
+      <div class="nav-section">Manage</div>
+      <button class="nav-item" onclick="admTab(this,'adm-employees')"><span class="nav-icon">👷</span><span class="nav-label">Employees</span></button>
+      <button class="nav-item" onclick="admTab(this,'adm-reports')"><span class="nav-icon">📈</span><span class="nav-label">Reports</span></button>
+    </nav>
+    <main class="main-content">
+      <!-- ADM DASHBOARD -->
+      <div id="adm-dashboard" class="tab-page active">
+        <div class="page-header">
+          <div><div class="page-title">Admin Dashboard 🛡️</div><div class="page-subtitle" id="adm-date-display"></div></div>
+          <button class="export-btn" onclick="exportCSV()">📥 Export CSV</button>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card blue"><div class="stat-icon">👷</div><div class="stat-value" id="adm-stat-emp">0</div><div class="stat-label">Employees</div></div>
+          <div class="stat-card green"><div class="stat-icon">🧾</div><div class="stat-value" id="adm-stat-sales">0</div><div class="stat-label">Today's Sales</div></div>
+          <div class="stat-card orange"><div class="stat-icon">⏳</div><div class="stat-value" id="adm-stat-pending">0</div><div class="stat-label">Pending Payments</div></div>
+          <div class="stat-card red"><div class="stat-icon">📍</div><div class="stat-value" id="adm-stat-att">0</div><div class="stat-label">Att. Pending</div></div>
+          <div class="stat-card purple"><div class="stat-icon">💧</div><div class="stat-value" id="adm-stat-cans">0</div><div class="stat-label">Cans Today</div></div>
+          <div class="stat-card green"><div class="stat-icon">👥</div><div class="stat-value" id="adm-stat-customers">0</div><div class="stat-label">Customers</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px">
+          <div class="card"><div class="card-header"><span class="card-title">Recent Sales</span></div><div class="card-body" id="adm-recent-sales"></div></div>
+          <div class="card"><div class="card-header"><span class="card-title">Payment Breakdown</span></div><div class="card-body" style="padding:20px" id="adm-payment-breakdown"></div></div>
+        </div>
+      </div>
+      <!-- ADM ATTENDANCE -->
+      <div id="adm-attendance" class="tab-page">
+        <div class="page-header">
+          <div><div class="page-title">Attendance Management</div><div class="page-subtitle">Review &amp; approve employee attendance</div></div>
+          <div class="filter-tabs" id="att-filter-tabs">
+            <button class="filter-tab active" onclick="filterAttendance('all',this)">All</button>
+            <button class="filter-tab" onclick="filterAttendance('awaiting',this)">⏳ Awaiting</button>
+            <button class="filter-tab" onclick="filterAttendance('approved',this)">✅ Approved</button>
+          </div>
+        </div>
+        <div class="card"><div class="card-body" id="adm-attendance-list"></div></div>
+      </div>
+      <!-- ADM SALES -->
+      <div id="adm-sales" class="tab-page">
+        <div class="page-header">
+          <div><div class="page-title">Sales Records</div><div class="page-subtitle">All sales with payment method &amp; status</div></div>
+          <button class="export-btn" onclick="exportCSV()">📥 Export CSV</button>
+        </div>
+        <div class="filter-tabs" id="sales-filter-tabs">
+          <button class="filter-tab active" onclick="filterSales('all',this)">All</button>
+          <button class="filter-tab" onclick="filterSales('status-pending',this)">⏳ Due</button>
+          <button class="filter-tab" onclick="filterSales('status-paid',this)">✅ Paid</button>
+          <button class="filter-tab" onclick="filterSales('pay-PhonePe',this)">📱 PhonePe</button>
+          <button class="filter-tab" onclick="filterSales('pay-Cash',this)">💵 Cash</button>
+          <button class="filter-tab" onclick="filterSales('pay-Monthly Card',this)">💳 Monthly Card</button>
+          <button class="filter-tab" onclick="filterSales('pay-Pending',this)">⏳ Pending</button>
+        </div>
+        <div class="card"><div class="card-body" id="adm-sales-list"></div></div>
+      </div>
+      <!-- ADM CUSTOMERS -->
+      <div id="adm-customers" class="tab-page">
+        <div class="page-header"><div><div class="page-title">Customer Search</div><div class="page-subtitle">Find customers by name or phone</div></div></div>
+        <div style="display:flex;gap:12px;margin-bottom:18px">
+          <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="customer-search" placeholder="Search by name or phone number..." oninput="searchCustomers()"></div>
+        </div>
+        <div class="card"><div class="card-body" id="adm-customer-list"></div></div>
+      </div>
+      <!-- ADM EMPLOYEES -->
+      <div id="adm-employees" class="tab-page">
+        <div class="page-header">
+          <div><div class="page-title">Manage Employees</div><div class="page-subtitle">Add or remove employee accounts</div></div>
+          <button class="btn btn-primary" style="width:auto" onclick="openAddEmployee()">+ Add Employee</button>
+        </div>
+        <div class="card" id="add-emp-form" style="display:none;margin-bottom:18px">
+          <div class="card-header"><span class="card-title">New Employee Account</span><button class="modal-close" style="position:static" onclick="document.getElementById('add-emp-form').style.display='none'">✕</button></div>
+          <div class="card-body" style="padding:22px">
+            <div class="form-row">
+              <div class="form-group"><label>Full Name</label><input type="text" id="new-emp-name" placeholder="Employee full name"></div>
+              <div class="form-group"><label>Email</label><input type="email" id="new-emp-email" placeholder="employee@email.com"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Password</label><input type="password" id="new-emp-pass" placeholder="Set password"></div>
+              <div class="form-group"><label>Phone (Optional)</label><input type="tel" id="new-emp-phone" placeholder="Contact number"></div>
+            </div>
+            <button class="btn btn-success" style="width:auto" onclick="addEmployee()">✅ Add Employee</button>
+          </div>
+        </div>
+        <div class="card"><div class="card-body" id="adm-employee-list"></div></div>
+      </div>
+      <!-- ADM REPORTS -->
+      <div id="adm-reports" class="tab-page">
+        <div class="page-header">
+          <div><div class="page-title">Reports &amp; Analytics</div><div class="page-subtitle">Sales summaries by employee and payment type</div></div>
+          <button class="export-btn" onclick="exportCSV()">📥 Export CSV</button>
+        </div>
+        <div class="stats-grid" id="report-stats"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+          <div class="card"><div class="card-header"><span class="card-title">Sales by Employee</span></div><div class="card-body" id="report-by-emp"></div></div>
+          <div class="card"><div class="card-header"><span class="card-title">Payment Method Summary</span></div><div class="card-body" style="padding:20px" id="report-by-payment"></div></div>
+        </div>
+        <div class="card" style="margin-top:18px"><div class="card-header"><span class="card-title">Daily Sales — Last 7 Days</span></div><div class="card-body" style="padding:20px" id="report-daily"></div></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- PHOTO MODAL -->
+<div class="modal-backdrop" id="photo-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3 id="modal-title">Attendance Photo</h3>
+    <img id="modal-img" src="" alt="">
+    <div id="modal-meta" style="color:var(--muted);font-size:0.83rem;margin-bottom:13px"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap" id="modal-actions"></div>
+  </div>
+</div>
+
+<!-- CUSTOMER MODAL -->
+<div class="modal-backdrop" id="customer-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('customer-modal').classList.remove('open')">✕</button>
+    <h3 id="cm-title">Customer Details</h3>
+    <div id="cm-body"></div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// ══════════ DATA ══════════
+const DB={
+  get:k=>{try{return JSON.parse(localStorage.getItem('aqf3_'+k))}catch(e){return null}},
+  set:(k,v)=>localStorage.setItem('aqf3_'+k,JSON.stringify(v))
+};
+
+const ADMINS=[
+  {email:'akash123@gmail.com',password:'admin123',name:'Akash'},
+  {email:'satish7702@gmail.com',password:'admin123',name:'Satish'},
+  {email:'azad123@gmail.com',password:'admin123',name:'Azad'}
+];
+
+function initData(){
+  if(!DB.get('employees')) DB.set('employees',[]);
+  if(!DB.get('attendance')) DB.set('attendance',[]);
+  if(!DB.get('sales')) DB.set('sales',[]);
+}
+initData();
+
+// ══════════ STATE ══════════
+let currentUser=null,currentRole=null,selfieData=null;
+let currentAttFilter='all',currentSalesFilter='all';
+let selectedPayment='';
+
+// ══════════ UTILS ══════════
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const today=()=>new Date().toISOString().split('T')[0];
+const fDate=iso=>new Date(iso).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+const fTime=iso=>new Date(iso).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+const fDT=iso=>fDate(iso)+' '+fTime(iso);
+
+function toast(msg,type='info'){
+  const el=document.createElement('div');
+  el.className='toast '+type;
+  const ic={success:'✅',error:'❌',info:'ℹ️'};
+  el.innerHTML=`<span>${ic[type]||'ℹ️'}</span><span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(()=>el.remove(),3500);
+}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById(id);if(el)el.classList.add('active');
+}
+function showLogin(role){showScreen(role+'-login');}
+function startClock(id){
+  const t=()=>{const el=document.getElementById(id);if(el)el.textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
+  t();setInterval(t,1000);
+}
+
+// ══════════ PAYMENT SELECT ══════════
+function selectPayment(val,el){
+  selectedPayment=val;
+  document.getElementById('sale-payment').value=val;
+  document.querySelectorAll('.payment-option').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ══════════ AUTH ══════════
+function employeeLogin(){
+  const email=document.getElementById('emp-email').value.trim();
+  const pass=document.getElementById('emp-pass').value;
+  const emp=(DB.get('employees')||[]).find(e=>e.email===email&&e.password===pass);
+  if(!emp){toast('Invalid email or password','error');return;}
+  currentUser=emp;currentRole='employee';
+  showScreen('_');
+  document.getElementById('employee-app').classList.add('active');
+  document.getElementById('emp-username').textContent=emp.name;
+  document.getElementById('emp-avatar').textContent=emp.name[0].toUpperCase();
+  document.getElementById('emp-greet-name').textContent=emp.name.split(' ')[0];
+  document.getElementById('emp-date-display').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  startClock('emp-clock');
+  refreshEmployeeDashboard();refreshAttendanceStatus();
+}
+
+function adminLogin(){
+  const email=document.getElementById('adm-email').value.trim().toLowerCase();
+  const pass=document.getElementById('adm-pass').value;
+  const admin=ADMINS.find(a=>a.email.toLowerCase()===email&&a.password===pass);
+  if(!admin){toast('Invalid admin credentials','error');return;}
+  currentUser=admin;currentRole='admin';
+  showScreen('_');
+  document.getElementById('admin-app').classList.add('active');
+  document.getElementById('adm-username').textContent=admin.name;
+  document.getElementById('adm-avatar').textContent=admin.name[0].toUpperCase();
+  document.getElementById('adm-date-display').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  startClock('adm-clock');
+  refreshAdminDashboard();refreshAdminAttendance();refreshAdminSales();renderAdminEmployees();renderReports();
+}
+
+function logout(){
+  currentUser=null;currentRole=null;selfieData=null;selectedPayment='';
+  document.getElementById('employee-app').classList.remove('active');
+  document.getElementById('admin-app').classList.remove('active');
+  ['emp-email','emp-pass','adm-email','adm-pass'].forEach(id=>document.getElementById(id).value='');
+  showScreen('landing');
+}
+
+// ══════════ TABS ══════════
+function empTab(btn,page){
+  document.querySelectorAll('#employee-app .nav-item').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#employee-app .tab-page').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');document.getElementById(page).classList.add('active');
+  if(page==='emp-history')refreshEmployeeSalesList();
+  if(page==='emp-dashboard')refreshEmployeeDashboard();
+  if(page==='emp-attendance')refreshAttendanceStatus();
+  if(page==='emp-sales'){selectedPayment='';document.querySelectorAll('.payment-option').forEach(o=>o.classList.remove('selected'));}
+}
+function admTab(btn,page){
+  document.querySelectorAll('#admin-app .nav-item').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#admin-app .tab-page').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');document.getElementById(page).classList.add('active');
+  if(page==='adm-attendance')refreshAdminAttendance();
+  if(page==='adm-sales')refreshAdminSales();
+  if(page==='adm-customers')searchCustomers();
+  if(page==='adm-dashboard')refreshAdminDashboard();
+  if(page==='adm-employees')renderAdminEmployees();
+  if(page==='adm-reports')renderReports();
+}
+
+// ══════════ EMPLOYEE — ATTENDANCE ══════════
+function previewSelfie(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    selfieData=ev.target.result;
+    const p=document.getElementById('selfie-preview');
+    p.src=selfieData;p.style.display='block';
+    document.getElementById('selfie-placeholder').style.display='none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function markAttendance(){
+  if(!selfieData){toast('Please upload a selfie first','error');return;}
+  const att=DB.get('attendance')||[];
+  if(att.find(a=>a.employeeId===currentUser.id&&a.date===today())){toast('Attendance already marked today!','error');return;}
+  att.push({id:uid(),employeeId:currentUser.id,employeeName:currentUser.name,date:today(),timestamp:new Date().toISOString(),photo:selfieData,note:document.getElementById('att-note').value,status:'awaiting'});
+  DB.set('attendance',att);selfieData=null;
+  toast('Attendance submitted!','success');refreshAttendanceStatus();refreshEmployeeDashboard();refreshAdminBadge();
+}
+
+function refreshAttendanceStatus(){
+  const att=DB.get('attendance')||[];
+  const rec=att.find(a=>a.employeeId===currentUser?.id&&a.date===today());
+  const title=document.getElementById('att-status-title');
+  const sub=document.getElementById('att-status-sub');
+  const badge=document.getElementById('att-status-badge');
+  const btn=document.getElementById('mark-att-btn');
+  if(rec){
+    title.textContent=rec.status==='approved'?'Attendance Approved ✅':'Submitted — Awaiting Approval ⏳';
+    sub.textContent='Marked at '+fDT(rec.timestamp);
+    badge.innerHTML=rec.status==='approved'?'<span class="badge badge-approved">Approved</span>':'<span class="badge badge-awaiting">Awaiting Approval</span>';
+    if(btn)btn.disabled=true;
+    const p=document.getElementById('selfie-preview');
+    if(p&&rec.photo){p.src=rec.photo;p.style.display='block';document.getElementById('selfie-placeholder').style.display='none';}
+  }else{
+    title.textContent='Not Marked Yet';sub.textContent='Mark your attendance for today';badge.innerHTML='';
+    if(btn)btn.disabled=false;
+  }
+}
+
+// ══════════ EMPLOYEE — SALES ══════════
+function submitSale(){
+  const cname=document.getElementById('sale-cname').value.trim();
+  const phone=document.getElementById('sale-phone').value.trim();
+  const cans=parseInt(document.getElementById('sale-cans').value);
+  const payment=document.getElementById('sale-payment').value;
+  const notes=document.getElementById('sale-notes').value.trim();
+  if(!cname||!phone||!cans||!payment){toast('Please fill all required fields','error');return;}
+  if(!/^\d{10}$/.test(phone)){toast('Enter a valid 10-digit phone number','error');return;}
+  if(cans<1){toast('Cans must be at least 1','error');return;}
+  const sales=DB.get('sales')||[];
+  sales.push({id:uid(),employeeId:currentUser.id,employeeName:currentUser.name,customerName:cname,phone,cans,payment,notes,timestamp:new Date().toISOString(),date:today(),status:payment==='Pending'?'pending':'paid'});
+  DB.set('sales',sales);
+  ['sale-cname','sale-phone','sale-cans','sale-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('sale-payment').value='';
+  selectedPayment='';document.querySelectorAll('.payment-option').forEach(o=>o.classList.remove('selected'));
+  toast('Sale submitted!','success');refreshEmployeeDashboard();
+}
+
+function refreshEmployeeDashboard(){
+  const sales=DB.get('sales')||[];const att=DB.get('attendance')||[];
+  const mySales=sales.filter(s=>s.employeeId===currentUser?.id);
+  const todaySales=mySales.filter(s=>s.date===today());
+  const monthSales=mySales.filter(s=>s.date?.slice(0,7)===today().slice(0,7));
+  const todayCans=todaySales.reduce((a,s)=>a+s.cans,0);
+  const rec=att.find(a=>a.employeeId===currentUser?.id&&a.date===today());
+  document.getElementById('emp-stat-att').textContent=rec?(rec.status==='approved'?'✅':'⏳'):'—';
+  document.getElementById('emp-stat-sales').textContent=todaySales.length;
+  document.getElementById('emp-stat-cans').textContent=todayCans;
+  document.getElementById('emp-stat-month').textContent=monthSales.length;
+  const list=document.getElementById('emp-today-list');
+  if(!todaySales.length){list.innerHTML='<div class="empty-state"><div class="emoji">🛒</div><p>No sales submitted today</p></div>';return;}
+  list.innerHTML=todaySales.slice().reverse().map(s=>`<div class="my-sales-item"><div><div class="sales-customer">${s.customerName}</div><div class="sales-meta">${s.phone} · ${s.cans} can${s.cans>1?'s':''} · ${fTime(s.timestamp)}</div></div><div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">${pBadge(s.payment)}${sBadge(s.status)}</div></div>`).join('');
+}
+
+function refreshEmployeeSalesList(){
+  const sales=(DB.get('sales')||[]).filter(s=>s.employeeId===currentUser?.id).slice().reverse();
+  const list=document.getElementById('emp-sales-list');
+  if(!sales.length){list.innerHTML='<div class="empty-state"><div class="emoji">📋</div><p>No sales submitted yet</p></div>';return;}
+  list.innerHTML=`<table><thead><tr><th>Date</th><th>Customer</th><th>Phone</th><th>Cans</th><th>Payment</th><th>Status</th></tr></thead><tbody>${sales.map(s=>`<tr><td>${fDate(s.timestamp)}</td><td>${s.customerName}</td><td>${s.phone}</td><td>💧 ${s.cans}</td><td>${pBadge(s.payment)}</td><td>${sBadge(s.status)}</td></tr>`).join('')}</tbody></table>`;
+}
+
+// ══════════ ADMIN — DASHBOARD ══════════
+function refreshAdminDashboard(){
+  const employees=DB.get('employees')||[];const sales=DB.get('sales')||[];const att=DB.get('attendance')||[];
+  const todaySales=sales.filter(s=>s.date===today());
+  const pending=sales.filter(s=>s.status==='pending');
+  const attPending=att.filter(a=>a.status==='awaiting');
+  const todayCans=todaySales.reduce((a,s)=>a+s.cans,0);
+  const custSet=new Set(sales.map(s=>s.phone));
+  document.getElementById('adm-stat-emp').textContent=employees.length;
+  document.getElementById('adm-stat-sales').textContent=todaySales.length;
+  document.getElementById('adm-stat-pending').textContent=pending.length;
+  document.getElementById('adm-stat-att').textContent=attPending.length;
+  document.getElementById('adm-stat-cans').textContent=todayCans;
+  document.getElementById('adm-stat-customers').textContent=custSet.size;
+  refreshAdminBadge();
+  const recentEl=document.getElementById('adm-recent-sales');
+  const recent=sales.slice().reverse().slice(0,6);
+  recentEl.innerHTML=!recent.length?'<div class="empty-state"><div class="emoji">🧾</div><p>No sales yet</p></div>':
+    recent.map(s=>`<div class="my-sales-item"><div><div class="sales-customer">${s.customerName}</div><div class="sales-meta">${s.employeeName} · ${fDT(s.timestamp)}</div></div><div style="display:flex;gap:5px;flex-wrap:wrap">${pBadge(s.payment)}${sBadge(s.status)}</div></div>`).join('');
+  const methods=['Cash','PhonePe','Monthly Card','Pending'];
+  const colors={Cash:'#00e5a0',PhonePe:'#a855f7','Monthly Card':'#00c6ff',Pending:'#ff4d6d'};
+  const icons={Cash:'💵',PhonePe:'📱','Monthly Card':'💳',Pending:'⏳'};
+  const total=sales.length||1;
+  document.getElementById('adm-payment-breakdown').innerHTML=`<div style="display:flex;flex-direction:column;gap:13px">${methods.map(m=>{const count=sales.filter(s=>s.payment===m).length;return`<div><div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:0.83rem"><span>${icons[m]} ${m}</span><span style="font-weight:600">${count}</span></div><div style="height:6px;background:var(--surface2);border-radius:4px;overflow:hidden"><div style="height:100%;width:${(count/total*100).toFixed(1)}%;background:${colors[m]};border-radius:4px"></div></div></div>`;}).join('')}</div>`;
+}
+
+function refreshAdminBadge(){
+  const att=DB.get('attendance')||[];
+  const n=att.filter(a=>a.status==='awaiting').length;
+  const b=document.getElementById('att-pending-badge');
+  if(b){b.textContent=n;b.style.display=n>0?'inline-block':'none';}
+}
+
+// ══════════ ADMIN — ATTENDANCE ══════════
+function filterAttendance(f,btn){
+  currentAttFilter=f;
+  document.querySelectorAll('#att-filter-tabs .filter-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');refreshAdminAttendance();
+}
+
+function refreshAdminAttendance(){
+  let att=[...DB.get('attendance')||[]];
+  if(currentAttFilter==='awaiting')att=att.filter(a=>a.status==='awaiting');
+  if(currentAttFilter==='approved')att=att.filter(a=>a.status==='approved');
+  att=att.slice().reverse();
+  const list=document.getElementById('adm-attendance-list');
+  if(!att.length){list.innerHTML='<div class="empty-state"><div class="emoji">📍</div><p>No attendance records</p></div>';return;}
+  list.innerHTML=`<table><thead><tr><th>Employee</th><th>Date</th><th>Time</th><th>Photo</th><th>Note</th><th>Status</th><th>Action</th></tr></thead><tbody>${att.map(a=>`<tr><td><strong>${a.employeeName}</strong></td><td>${fDate(a.timestamp)}</td><td>${fTime(a.timestamp)}</td><td><img class="att-photo" src="${a.photo}" onclick="viewPhoto('${a.id}')" title="View photo"></td><td style="color:var(--muted);font-size:0.8rem;max-width:110px">${a.note||'—'}</td><td>${a.status==='approved'?'<span class="badge badge-approved">Approved</span>':'<span class="badge badge-awaiting">Awaiting</span>'}</td><td>${a.status==='awaiting'?`<button class="btn btn-success btn-xs" onclick="approveAttendance('${a.id}')">✅ Approve</button>`:'<span style="color:var(--muted);font-size:0.78rem">Done</span>'}</td></tr>`).join('')}</tbody></table>`;
+}
+
+function approveAttendance(id){
+  const att=DB.get('attendance')||[];const rec=att.find(a=>a.id===id);
+  if(rec){rec.status='approved';DB.set('attendance',att);toast('Attendance approved!','success');refreshAdminAttendance();refreshAdminDashboard();closeModal();}
+}
+
+function viewPhoto(id){
+  const att=DB.get('attendance')||[];const rec=att.find(a=>a.id===id);if(!rec)return;
+  document.getElementById('modal-title').textContent=rec.employeeName+' — Attendance Photo';
+  document.getElementById('modal-img').src=rec.photo;
+  document.getElementById('modal-meta').textContent=fDT(rec.timestamp)+(rec.note?' · '+rec.note:'');
+  document.getElementById('modal-actions').innerHTML=rec.status==='awaiting'
+    ?`<button class="btn btn-success" onclick="approveAttendance('${id}')">✅ Approve Attendance</button>`
+    :'<span class="badge badge-approved" style="font-size:0.85rem;padding:7px 14px">Already Approved</span>';
+  document.getElementById('photo-modal').classList.add('open');
+}
+function closeModal(){document.getElementById('photo-modal').classList.remove('open');}
+
+// ══════════ ADMIN — SALES ══════════
+function filterSales(f,btn){
+  currentSalesFilter=f;
+  document.querySelectorAll('#sales-filter-tabs .filter-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');refreshAdminSales();
+}
+
+function refreshAdminSales(){
+  let sales=[...DB.get('sales')||[]];
+  if(currentSalesFilter==='status-pending') sales=sales.filter(s=>s.status==='pending');
+  else if(currentSalesFilter==='status-paid') sales=sales.filter(s=>s.status==='paid');
+  else if(currentSalesFilter.startsWith('pay-')) sales=sales.filter(s=>s.payment===currentSalesFilter.slice(4));
+  sales=sales.slice().reverse();
+  const list=document.getElementById('adm-sales-list');
+  if(!sales.length){list.innerHTML='<div class="empty-state"><div class="emoji">🧾</div><p>No sales records found</p></div>';return;}
+  list.innerHTML=`<table><thead><tr><th>Date &amp; Time</th><th>Employee</th><th>Customer</th><th>Phone</th><th>Cans</th><th>Payment Method</th><th>Pay Status</th><th>Action</th></tr></thead><tbody>${sales.map(s=>`<tr><td style="font-size:0.8rem">${fDT(s.timestamp)}</td><td style="font-size:0.84rem">${s.employeeName}</td><td><strong>${s.customerName}</strong>${s.notes?`<br><span style="font-size:0.73rem;color:var(--muted)">${s.notes}</span>`:''}</td><td>${s.phone}</td><td style="font-weight:600">💧 ${s.cans}</td><td>${pBadge(s.payment)}</td><td>${sBadge(s.status)}</td><td>${s.status==='pending'?`<button class="btn btn-success btn-xs" onclick="markPaid('${s.id}')">Mark Paid</button>`:'—'}</td></tr>`).join('')}</tbody></table>`;
+}
+
+function markPaid(id){
+  const sales=DB.get('sales')||[];const rec=sales.find(s=>s.id===id);
+  if(rec){rec.status='paid';DB.set('sales',sales);toast('Marked as paid!','success');refreshAdminSales();refreshAdminDashboard();renderReports();}
+}
+
+// ══════════ ADMIN — CUSTOMERS ══════════
+function searchCustomers(){
+  const q=(document.getElementById('customer-search')?.value||'').trim().toLowerCase();
+  const sales=DB.get('sales')||[];
+  renderCustomers(q?sales.filter(s=>s.customerName.toLowerCase().includes(q)||s.phone.includes(q)):sales);
+}
+
+function renderCustomers(sales){
+  const map={};
+  sales.forEach(s=>{if(!map[s.phone])map[s.phone]={name:s.customerName,phone:s.phone,orders:[]};map[s.phone].orders.push(s);});
+  const customers=Object.values(map);
+  const list=document.getElementById('adm-customer-list');
+  if(!customers.length){list.innerHTML='<div class="empty-state"><div class="emoji">🔍</div><p>No customers found</p></div>';return;}
+  list.innerHTML=`<table><thead><tr><th>Customer</th><th>Phone</th><th>Orders</th><th>Total Cans</th><th>Pending Dues</th><th>Last Order</th><th>Details</th></tr></thead><tbody>${customers.map(c=>{
+    const totalCans=c.orders.reduce((a,o)=>a+o.cans,0);
+    const pending=c.orders.filter(o=>o.status==='pending').length;
+    const last=c.orders.slice().sort((a,b)=>b.timestamp.localeCompare(a.timestamp))[0];
+    return`<tr><td><strong>${c.name}</strong></td><td>${c.phone}</td><td>${c.orders.length}</td><td>💧 ${totalCans}</td><td>${pending>0?`<span class="badge badge-pending">${pending} pending</span>`:'<span style="color:var(--success);font-size:0.78rem">✓ Clear</span>'}</td><td style="font-size:0.8rem;color:var(--muted)">${fDate(last.timestamp)}</td><td><button class="btn btn-secondary btn-xs" onclick="viewCustomer('${c.phone}')">View</button></td></tr>`;
+  }).join('')}</tbody></table>`;
+}
+
+function viewCustomer(phone){
+  const sales=DB.get('sales')||[];
+  const orders=sales.filter(s=>s.phone===phone);if(!orders.length)return;
+  const name=orders[0].customerName;
+  const totalCans=orders.reduce((a,o)=>a+o.cans,0);
+  const pending=orders.filter(o=>o.status==='pending');
+  document.getElementById('cm-title').textContent=name+' — Order History';
+  document.getElementById('cm-body').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+    <div class="stat-card blue" style="padding:13px"><div class="stat-icon" style="font-size:1rem">📦</div><div class="stat-value" style="font-size:1.35rem">${orders.length}</div><div class="stat-label">Total Orders</div></div>
+    <div class="stat-card orange" style="padding:13px"><div class="stat-icon" style="font-size:1rem">💧</div><div class="stat-value" style="font-size:1.35rem">${totalCans}</div><div class="stat-label">Total Cans</div></div>
+  </div>${pending.length?`<div class="info-banner" style="background:rgba(255,77,109,0.07);border-color:rgba(255,77,109,0.25)">⚠️ ${pending.length} pending payment(s)</div>`:''}
+  <div style="max-height:280px;overflow-y:auto">${orders.slice().reverse().map(o=>`<div class="order-row"><div><div style="font-size:0.83rem;font-weight:500">${fDate(o.timestamp)}</div><div style="font-size:0.76rem;color:var(--muted)">${o.employeeName} · ${o.cans} cans</div></div><div style="display:flex;gap:5px;align-items:center">${pBadge(o.payment)}${sBadge(o.status)}</div></div>`).join('')}</div>`;
+  document.getElementById('customer-modal').classList.add('open');
+}
+
+// ══════════ ADMIN — EMPLOYEES ══════════
+function renderAdminEmployees(){
+  const employees=DB.get('employees')||[];const sales=DB.get('sales')||[];const att=DB.get('attendance')||[];
+  const list=document.getElementById('adm-employee-list');
+  if(!employees.length){list.innerHTML='<div class="empty-state"><div class="emoji">👷</div><p>No employees added yet. Click "+ Add Employee" to get started.</p></div>';return;}
+  list.innerHTML=`<table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Total Sales</th><th>Cans Sold</th><th>Today Att.</th><th>Action</th></tr></thead><tbody>${employees.map(e=>{
+    const es=sales.filter(s=>s.employeeId===e.id);
+    const ec=es.reduce((a,s)=>a+s.cans,0);
+    const ea=att.find(a=>a.employeeId===e.id&&a.date===today());
+    return`<tr><td><strong>${e.name}</strong></td><td style="color:var(--muted);font-size:0.83rem">${e.email}</td><td style="color:var(--muted);font-size:0.83rem">${e.phone||'—'}</td><td>${es.length}</td><td>💧 ${ec}</td><td>${ea?(ea.status==='approved'?'<span class="badge badge-approved">Approved</span>':'<span class="badge badge-awaiting">Awaiting</span>'):'<span style="color:var(--muted);font-size:0.78rem">Absent</span>'}</td><td><button class="btn btn-danger btn-xs" onclick="removeEmployee('${e.id}')">Remove</button></td></tr>`;
+  }).join('')}</tbody></table>`;
+}
+
+function openAddEmployee(){
+  const f=document.getElementById('add-emp-form');f.style.display='block';f.scrollIntoView({behavior:'smooth'});
+}
+
+function addEmployee(){
+  const name=document.getElementById('new-emp-name').value.trim();
+  const email=document.getElementById('new-emp-email').value.trim();
+  const password=document.getElementById('new-emp-pass').value;
+  const phone=document.getElementById('new-emp-phone').value.trim();
+  if(!name||!email||!password){toast('Fill all required fields','error');return;}
+  const employees=DB.get('employees')||[];
+  if(employees.find(e=>e.email===email)){toast('Email already exists','error');return;}
+  employees.push({id:uid(),name,email,password,phone});DB.set('employees',employees);
+  ['new-emp-name','new-emp-email','new-emp-pass','new-emp-phone'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('add-emp-form').style.display='none';
+  toast('Employee added!','success');renderAdminEmployees();refreshAdminDashboard();
+}
+
+function removeEmployee(id){
+  if(!confirm('Remove this employee?'))return;
+  let e=DB.get('employees')||[];e=e.filter(x=>x.id!==id);DB.set('employees',e);
+  toast('Employee removed','info');renderAdminEmployees();refreshAdminDashboard();
+}
+
+// ══════════ REPORTS ══════════
+function renderReports(){
+  const sales=DB.get('sales')||[];const employees=DB.get('employees')||[];
+  const totalCans=sales.reduce((a,s)=>a+s.cans,0);
+  const monthSales=sales.filter(s=>s.date?.slice(0,7)===today().slice(0,7));
+  document.getElementById('report-stats').innerHTML=`
+    <div class="stat-card blue"><div class="stat-icon">🧾</div><div class="stat-value">${sales.length}</div><div class="stat-label">Total Sales</div></div>
+    <div class="stat-card green"><div class="stat-icon">💧</div><div class="stat-value">${totalCans}</div><div class="stat-label">Total Cans</div></div>
+    <div class="stat-card orange"><div class="stat-icon">⏳</div><div class="stat-value">${sales.filter(s=>s.status==='pending').length}</div><div class="stat-label">Pending Dues</div></div>
+    <div class="stat-card purple"><div class="stat-icon">🗓️</div><div class="stat-value">${monthSales.length}</div><div class="stat-label">This Month</div></div>`;
+  const empEl=document.getElementById('report-by-emp');
+  if(!employees.length){empEl.innerHTML='<div class="empty-state"><div class="emoji">👷</div><p>No employees</p></div>';}
+  else empEl.innerHTML=`<table><thead><tr><th>Employee</th><th>Sales</th><th>Cans</th><th>Pending</th></tr></thead><tbody>${employees.map(e=>{const es=sales.filter(s=>s.employeeId===e.id);const ec=es.reduce((a,s)=>a+s.cans,0);const ep=es.filter(s=>s.status==='pending').length;return`<tr><td><strong>${e.name}</strong></td><td>${es.length}</td><td>💧 ${ec}</td><td>${ep>0?`<span class="badge badge-pending">${ep}</span>`:'—'}</td></tr>`;}).join('')}</tbody></table>`;
+  const methods=['Cash','PhonePe','Monthly Card','Pending'];
+  const colors={Cash:'#00e5a0',PhonePe:'#a855f7','Monthly Card':'#00c6ff',Pending:'#ff4d6d'};
+  const icons={Cash:'💵',PhonePe:'📱','Monthly Card':'💳',Pending:'⏳'};
+  const total=sales.length||1;
+  document.getElementById('report-by-payment').innerHTML=`<div style="display:flex;flex-direction:column;gap:14px">${methods.map(m=>{const ms=sales.filter(s=>s.payment===m);const mc=ms.reduce((a,s)=>a+s.cans,0);const pct=(ms.length/total*100).toFixed(1);return`<div><div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:0.82rem"><span>${icons[m]} ${m}</span><span style="font-weight:600">${ms.length} sales · 💧${mc}</span></div><div style="height:6px;background:var(--surface2);border-radius:4px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${colors[m]};border-radius:4px"></div></div><div style="font-size:0.72rem;color:var(--muted);margin-top:2px">${pct}%</div></div>`;}).join('')}</div>`;
+  const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d.toISOString().split('T')[0]);}
+  const maxCount=Math.max(...days.map(d=>sales.filter(s=>s.date===d).length),1);
+  document.getElementById('report-daily').innerHTML=`<div style="display:flex;align-items:flex-end;gap:8px;height:120px;padding-bottom:26px;position:relative">${days.map(d=>{const count=sales.filter(s=>s.date===d).length;const h=Math.max((count/maxCount)*100,4);const label=new Date(d+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric'});return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end"><div style="font-size:0.7rem;color:var(--accent);font-weight:600">${count||''}</div><div style="width:100%;height:${h}%;background:linear-gradient(180deg,var(--accent),var(--accent2));border-radius:5px 5px 0 0;min-height:4px"></div><div style="font-size:0.65rem;color:var(--muted);text-align:center;position:absolute;bottom:0">${label}</div></div>`;}).join('')}</div>`;
+}
+
+// ══════════ EXPORT CSV ══════════
+function exportCSV(){
+  const sales=DB.get('sales')||[];
+  if(!sales.length){toast('No sales data to export','error');return;}
+  const headers=['Date','Time','Employee','Customer','Phone','Cans','Payment Method','Status','Notes'];
+  const rows=sales.map(s=>[fDate(s.timestamp),fTime(s.timestamp),s.employeeName,s.customerName,s.phone,s.cans,s.payment,s.status,s.notes||'']);
+  const csv=[headers,...rows].map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`aquaflow-sales-${today()}.csv`;a.click();
+  toast('CSV exported!','success');
+}
+
+// ══════════ BADGE HELPERS ══════════
+function pBadge(p){
+  return {Cash:'<span class="badge badge-cash">💵 Cash</span>',PhonePe:'<span class="badge badge-phonepe">📱 PhonePe</span>','Monthly Card':'<span class="badge badge-card">💳 Monthly Card</span>',Pending:'<span class="badge badge-pay-pending">⏳ Pending</span>'}[p]||`<span class="badge">${p}</span>`;
+}
+function sBadge(s){return s==='paid'?'<span class="badge badge-paid">✓ Paid</span>':'<span class="badge badge-pending">⏳ Due</span>';}
+
+// Close modals on backdrop click
+document.getElementById('photo-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+document.getElementById('customer-modal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
+</script>
+</body>
+</html>
